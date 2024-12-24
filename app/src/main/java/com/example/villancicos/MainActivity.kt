@@ -1,5 +1,7 @@
 package com.example.villancicos
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.graphics.drawable.AnimationDrawable
 import android.graphics.drawable.TransitionDrawable
 import android.media.MediaPlayer
@@ -20,13 +22,14 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     private lateinit var animationDrawable: AnimationDrawable
     private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var playButton: ImageButton
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         // Referencia al ImageView y al ImageButton desde el layout
         val imageView = findViewById<ImageView>(R.id.imageView)
-        val playButton = findViewById<ImageButton>(R.id.imageButton1)
+         playButton = findViewById(R.id.imageButton1)
 
         // Configura el drawable como AnimationDrawable
         imageView.setBackgroundResource(R.drawable.transition) // Nota: usa setBackgroundResource
@@ -38,13 +41,46 @@ class MainActivity : AppCompatActivity() {
                 mediaPlayer.pause()
                 animationDrawable.stop() // Detener la animación si ya está corriendo
             } else {//Si no, inicia la cancion y cambia la imagen del boton
+                startDiagonalAnimation()
                 mediaPlayer.start()
                 animationDrawable.start() // Iniciar la animación
-                playButton.setImageResource(R.drawable.pause)
+               
 
             }
 
         }
+    }
+    private fun startDiagonalAnimation() {
+        val screenWidth = resources.displayMetrics.widthPixels
+        val screenHeight = resources.displayMetrics.heightPixels
+
+        val animatorX = ObjectAnimator.ofFloat(
+            playButton,
+            "x",
+            0f,
+            screenWidth - playButton.width.toFloat()
+        )
+        val animatorY = ObjectAnimator.ofFloat(
+            playButton,
+            "y",
+            0f,
+            screenHeight - playButton.height.toFloat()
+        )
+
+        // Alternar entre moverse hacia adelante y hacia atrás
+        animatorX.repeatCount = ObjectAnimator.INFINITE
+        animatorY.repeatCount = ObjectAnimator.INFINITE
+        animatorX.repeatMode = ObjectAnimator.REVERSE
+        animatorY.repeatMode = ObjectAnimator.REVERSE
+
+        // Sincronizar duración y ejecución
+        animatorX.duration = 3000L
+        animatorY.duration = 3000L
+
+        // Ejecutar animadores juntos
+        val animatorSet = AnimatorSet()
+        animatorSet.playTogether(animatorX, animatorY)
+        animatorSet.start()
     }
 
 }
