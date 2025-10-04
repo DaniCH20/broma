@@ -3,18 +3,14 @@ package com.example.villancicos
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.graphics.drawable.AnimationDrawable
-import android.graphics.drawable.TransitionDrawable
 import android.media.MediaPlayer
 import android.os.Bundle
-import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -23,30 +19,56 @@ class MainActivity : AppCompatActivity() {
     private lateinit var animationDrawable: AnimationDrawable
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var playButton: ImageButton
+    var ejecucion: Boolean = false
+    private var initialX = 0f
+    private var initialY = 0f
+    private var jobMovimiento: Job? = null
+    private val imagenes = arrayOf(
+        R.drawable.file,
+        R.drawable.file2,
+        R.drawable.file3,
+        R.drawable.file4,
+        R.drawable.file5,
+        R.drawable.file6,
+        R.drawable.file7,
+        R.drawable.file8,
+        R.drawable.file9,
+        R.drawable.file10,
+        R.drawable.file11,
+        R.drawable.file12
+    )
+    private var posicion = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Referencia al ImageView y al ImageButton desde el layout
+
         val imageView = findViewById<ImageView>(R.id.imageView)
          playButton = findViewById(R.id.imageButton1)
+        playButton.post {
+            initialX = playButton.x
+            initialY = playButton.y
+        }
 
-        // Configura el drawable como AnimationDrawable
-        imageView.setBackgroundResource(R.drawable.transition) // Nota: usa setBackgroundResource
+        imageView.setBackgroundResource(R.drawable.transition)
         animationDrawable = imageView.background as AnimationDrawable
         mediaPlayer = MediaPlayer.create(this, R.raw.navidad)
-        // Listener para iniciar la animación al presionar el botón
+
+
         playButton.setOnClickListener {
-            if (mediaPlayer.isPlaying || animationDrawable.isRunning) {//Si esta funcionando lo para y cambia la imagen del boton
-                mediaPlayer.pause()
-                animationDrawable.stop() // Detener la animación si ya está corriendo
-            } else {//Si no, inicia la cancion y cambia la imagen del boton
+
+            if(!ejecucion){
                 startDiagonalAnimation()
                 mediaPlayer.start()
-                animationDrawable.start() // Iniciar la animación
-               
-
+                animationDrawable.start()
+                ejecucion = true
+            }else{
+                stopDiagonalAnimation()
+                mediaPlayer.pause()
+                animationDrawable.stop()
+                ejecucion = false
             }
+
 
         }
     }
@@ -54,33 +76,54 @@ class MainActivity : AppCompatActivity() {
         val screenWidth = resources.displayMetrics.widthPixels
         val screenHeight = resources.displayMetrics.heightPixels
 
-        val animatorX = ObjectAnimator.ofFloat(
-            playButton,
-            "x",
-            0f,
-            screenWidth - playButton.width.toFloat()
-        )
-        val animatorY = ObjectAnimator.ofFloat(
-            playButton,
-            "y",
-            0f,
-            screenHeight - playButton.height.toFloat()
-        )
+        var x = playButton.x
+        var y = playButton.y
+        var vx = 6f   // velocidad en X
+        var vy = 8f   // velocidad en Y
 
-        // Alternar entre moverse hacia adelante y hacia atrás
-        animatorX.repeatCount = ObjectAnimator.INFINITE
-        animatorY.repeatCount = ObjectAnimator.INFINITE
-        animatorX.repeatMode = ObjectAnimator.REVERSE
-        animatorY.repeatMode = ObjectAnimator.REVERSE
+        jobMovimiento = CoroutineScope(Dispatchers.Main).launch {
+            while (isActive) {
+                x += vx
+                y += vy
 
-        // Sincronizar duración y ejecución
-        animatorX.duration = 3000L
-        animatorY.duration = 3000L
+                var rebotado = false // para saber si hubo choque
 
-        // Ejecutar animadores juntos
-        val animatorSet = AnimatorSet()
-        animatorSet.playTogether(animatorX, animatorY)
-        animatorSet.start()
+                // 🔹 Rebote en X
+                if (x <= 0 || x + playButton.width >= screenWidth) {
+                    vx = -vx
+                    rebotado = true
+                }
+
+                // 🔹 Rebote en Y
+                if (y <= 0 || y + playButton.height >= screenHeight) {
+                    vy = -vy
+                    rebotado = true
+                }
+
+                // 🔹 Si rebotó, cambia la imagen
+                if (rebotado) cambiarImagen()
+
+                playButton.x = x
+                playButton.y = y
+
+                delay(16L)
+            }
+        }
     }
+    private fun cambiarImagen() {
+        posicion = (posicion + 1) % imagenes.size
+        playButton.setImageResource(imagenes[posicion])
+    }
+    private fun stopDiagonalAnimation() {
+        jobMovimiento?.cancel()
 
+
+        val backX = ObjectAnimator.ofFloat(playButton, "x", playButton.x, initialX)
+        val backY = ObjectAnimator.ofFloat(playButton, "y", playButton.y, initialY)
+        AnimatorSet().apply {
+            playTogether(backX, backY)
+            duration = 1000
+            start()
+        }
+    }
 }
