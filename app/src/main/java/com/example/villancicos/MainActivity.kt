@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.bumptech.glide.Glide
 
 class MainActivity : AppCompatActivity() {
     private lateinit var animationDrawable: AnimationDrawable
@@ -41,7 +42,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        val gif = findViewById<ImageView>(R.id.imageView6)
 
+        Glide.with(this)
+            .asGif()
+            .load(R.drawable.fondo)  // tu gif en /res/drawable/
+            .into(gif)
 
         val imageView = findViewById<ImageView>(R.id.imageView)
          playButton = findViewById(R.id.imageButton1)
